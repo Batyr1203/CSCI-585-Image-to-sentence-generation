@@ -11,6 +11,10 @@ import matplotlib.cm as cm
 import imageio
 from imageio import imread
 from cv2 import resize as imresize
+import skimage
+import io
+
+st.set_page_config(layout="wide")
 
 
 model_path = 'checkpoints/lstm_model_checkpoints/BEST_checkpoint_coco_5_cap_per_img_5_min_word_freq.pth.tar'
@@ -154,16 +158,47 @@ def caption_image_beam_search(encoder, decoder, img, word_map, rev_word_map, bea
     return caption, seq, alphas
 
 
+def visualize_att(image, seq, alphas, rev_word_map, smooth=True):
+    """
+    Visualizes caption with weights at every word.
 
-def load_image():
-    uploaded_file = st.file_uploader(label='Pick an image to test')
-    if uploaded_file is not None:
-        image_data = uploaded_file.getvalue()
-        st.image(image_data)
-        return imageio.v2.imread(image_data)
-    else:
-        return None
+    Adapted from paper authors' repo: https://github.com/kelvinxu/arctic-captions/blob/master/alpha_visualization.ipynb
 
+    :param image_path: path to image that has been captioned
+    :param seq: caption
+    :param alphas: weights
+    :param rev_word_map: reverse word mapping, i.e. ix2word
+    :param smooth: smooth weights?
+    """
+    image = image.resize([14 * 24, 14 * 24], Image.Resampling.LANCZOS)
+
+    words = [rev_word_map[ind] for ind in seq]
+
+    plt.figure(figsize=(12, 10))
+    for t in range(len(words)):
+        if t > 50:
+            break
+        plt.subplot(int(np.ceil(len(words) / 5.)), 5, t + 1)
+
+        plt.text(0, 1, '%s' % (words[t]), color='black', backgroundcolor='white', fontsize=20)
+        plt.imshow(image)
+        current_alpha = alphas[t, :]
+        if smooth:
+            alpha = skimage.transform.pyramid_expand(current_alpha.numpy(), upscale=24, sigma=8)
+        else:
+            alpha = skimage.transform.resize(current_alpha.numpy(), [14 * 24, 14 * 24])
+        if t == 0:
+            plt.imshow(alpha, alpha=0)
+        else:
+            plt.imshow(alpha, alpha=0.8)
+        plt.set_cmap(cm.Greys_r)
+        plt.axis('off')
+
+    img_buf = io.BytesIO()
+    plt.savefig(img_buf, format='png')
+    image_pil = Image.open(img_buf)
+    return image_pil
+    
 
 @st.cache_resource
 def load_model():
@@ -187,16 +222,44 @@ def load_model():
     return decoder, encoder, word_map, rev_word_map
 
 decoder, encoder, word_map, rev_word_map = load_model()
-    
+
+
+def load_image():
+    uploaded_file = st.file_uploader(label='Pick an image to test')
+    if uploaded_file is not None:
+        image_data = uploaded_file.getvalue()
+        st.image(image_data)
+        return image_data
+    else:
+        return None
+
+
 def main():
     st.title('Image Captioning Model (CNN+LSTM)')
-    image = load_image()
-    result = st.button('Run on image')
-    if result:
-        st.write('Calculating results...')
-        caption, seq, alphas = caption_image_beam_search(encoder, decoder, image, word_map, rev_word_map)
-        st.write(caption)
 
+    col1, col2 = st.columns(2)   
+
+    with col1:
+        image_data = load_image()
+        if image_data is not None:
+            image = imageio.v2.imread(image_data)
+            image_pil = Image.open(io.BytesIO(image_data))
+
+        result = st.button('Run on image')
+        if result:
+            with col2:
+                caption, seq, alphas = caption_image_beam_search(encoder, decoder, image, word_map, rev_word_map)
+                alphas = torch.FloatTensor(alphas)
+            
+                print('predicted caption:', caption)
+                st.markdown(f'## :blue[{caption}]')
+            
+                st.write('''
+                    ## Attention
+                ''')
+                vis_image = visualize_att(image_pil, seq, alphas, rev_word_map)
+                st.image(vis_image)
+    
 
 if __name__ == '__main__':
     main()
