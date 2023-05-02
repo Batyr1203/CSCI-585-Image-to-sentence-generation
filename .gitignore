@@ -1,3 +1,6 @@
 *.tar
 .ipynb_checkpoints
 __pycache__/
+
+# virtual env
+img2text/
