@@ -166,6 +166,8 @@ def visualize_att(image_path, seq, alphas, rev_word_map, smooth=True):
 
     words = [rev_word_map[ind] for ind in seq]
 
+    plt.figure(figsize=(12, 10))
+
     for t in range(len(words)):
         if t > 50:
             break
