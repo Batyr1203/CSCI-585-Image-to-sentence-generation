@@ -32,7 +32,7 @@ import argparse
 #     references = list()
 #     hypotheses = list()
 
-#     with torch.no_grad():
+#     with torch.inference_mode():
 #         for i, (image, caps, caplens, allcaps) in enumerate(tqdm(loader, desc="EVALUATING AT BEAM SIZE " + str(beam_size))):
 #             k = beam_size
 #             # Move to GPU device, if available
@@ -149,7 +149,7 @@ def evaluate_transformer(args):
     references = list()
     hypotheses = list()
 
-    with torch.no_grad():
+    with torch.inference_mode():
         for i, (image, caps, caplens, allcaps) in enumerate(tqdm(loader, desc="EVALUATING AT BEAM SIZE " + str(beam_size))):
             k = beam_size
             # Move to GPU device, if available

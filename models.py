@@ -59,6 +59,7 @@ class Encoder(nn.Module):
             for p in c.parameters():
                 p.requires_grad = fine_tune
 
+CNN_Encoder = Encoder
 
 class Attention(nn.Module):
     """

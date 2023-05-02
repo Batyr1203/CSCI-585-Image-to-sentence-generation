@@ -140,7 +140,7 @@ def validate(args, val_loader, encoder, decoder, criterion):
     hypotheses = list()  # hypotheses (predictions)
 
     # explicitly disable gradient calculation to avoid CUDA memory error
-    with torch.no_grad():
+    with torch.inference_mode():
         # Batches
         for i, (imgs, caps, caplens, allcaps) in enumerate(val_loader):
 

@@ -10,10 +10,8 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import skimage.transform
 import argparse
-# from scipy.misc import imread, imresize
 import imageio.v2 as imageio
 from PIL import Image
-# import transformer, models
 
 
 def caption_image_beam_search(args, encoder, decoder, image_path, word_map):
@@ -96,13 +94,6 @@ def caption_image_beam_search(args, encoder, decoder, image_path, word_map):
             scores = scores[:, step - 1, :].squeeze(1)  # [s, 1, vocab_size] -> [s, vocab_size]
             # choose the last layer, transformer decoder is comosed of a stack of 6 identical layers.
             alpha = alpha_dict["dec_enc_attns"][-1]  # [s, n_heads=8, len_q=52, len_k=196]
-            # TODO: AVG Attention to Visualize
-            # for i in range(len(alpha_dict["dec_enc_attns"])):
-            #     n_heads = alpha_dict["dec_enc_attns"][i].size(1)
-            #     for j in range(n_heads):
-            #         pass
-            # the second dim corresponds to the Multi-head attention = 8, now 0
-            # the third dim corresponds to cur caption position
             alpha = alpha[:, 0, step-1, :].view(k, 1, enc_image_size, enc_image_size)  # [s, 1, enc_image_size, enc_image_size]
 
         scores = F.log_softmax(scores, dim=1)
@@ -163,7 +154,7 @@ def caption_image_beam_search(args, encoder, decoder, image_path, word_map):
     return seq, alphas
 
 
-def visualize_att(image_path, seq, alphas, rev_word_map, path, smooth=True):
+def visualize_att(image_path, seq, alphas, rev_word_map, smooth=True):
     """
     Visualizes caption with weights at every word.
     Adapted from paper authors' repo: https://github.com/kelvinxu/arctic-captions/blob/master/alpha_visualization.ipynb
@@ -175,10 +166,10 @@ def visualize_att(image_path, seq, alphas, rev_word_map, path, smooth=True):
     :param smooth: smooth weights?
     """
     image = Image.open(image_path)
-    image = image.resize([14 * 24, 14 * 24], Image.LANCZOS)
+    image = image.resize([14 * 24, 14 * 24], Image.Resampling.LANCZOS)
 
     words = [rev_word_map[ind] for ind in seq]
-    print(words)
+    #print(words)
 
     for t in range(len(words)):
         if t > 50:
@@ -198,29 +189,29 @@ def visualize_att(image_path, seq, alphas, rev_word_map, path, smooth=True):
             plt.imshow(alpha, alpha=0.8)
         plt.set_cmap(cm.Greys_r)
         plt.axis('off')
-    print(path)
-    plt.savefig(path)
+    #print(path)
+    #plt.savefig(path)
     plt.show()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Image_Captioning')
-    parser.add_argument('--img', '-i', default="./example_images/", help='path to image, file or folder')
-    parser.add_argument('--checkpoint', '-m', default="./checkpoints/BEST_checkpoint_coco_5_cap_per_img_5_min_word_freq.pth.tar", help='path to model')
+    parser.add_argument('--img', '-i', default="example_images/cat.png", help='path to image, file or folder')
+    parser.add_argument('--checkpoint', '-m', default="checkpoints/transformer_model_checkpoints/BEST_checkpoint_coco_5_cap_per_img_5_min_word_freq.pth.tar", help='path to model')
     parser.add_argument('--word_map', '-wm', default="./checkpoints/WORDMAP_coco_5_cap_per_img_5_min_word_freq.json",
                         help='path to word map JSON')
-    parser.add_argument('--decoder_mode', default="transformer", help='which model does decoder use?')  # lstm or transformer
+    parser.add_argument('--decoder_mode', default="transformer", help='which model does decoder use?')
     parser.add_argument('--save_img_dir', '-p', default="./caption", help='path to save annotated img.')
     parser.add_argument('--beam_size', '-b', type=int, default=5, help='beam size for beam search')
     parser.add_argument('--dont_smooth', dest='smooth', action='store_false', help='do not smooth alpha overlay')
     args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # transformer.device = torch.device("cpu")
-    # models.device = torch.device("cpu")
     print(device)
 
     # Load model
+    start = time.time()
+
     checkpoint = torch.load(args.checkpoint, map_location=str(device))
     decoder = checkpoint['decoder']
     decoder = decoder.to(device)
@@ -236,11 +227,14 @@ if __name__ == '__main__':
         word_map = json.load(j)
     rev_word_map = {v: k for k, v in word_map.items()}  # ix2word
 
+    stop = time.time()
+    print('Model loading time:', stop-start)
+
     # Encode, decode with attention and beam search
     if os.path.isdir(args.img):
         for file in os.listdir(args.img):
             file = os.path.join(args.img, file)
-            with torch.no_grad():
+            with torch.inference_mode():
                 seq, alphas = caption_image_beam_search(args, encoder, decoder, file, word_map)
                 alphas = torch.FloatTensor(alphas)
 
@@ -251,13 +245,17 @@ if __name__ == '__main__':
             # Visualize caption and attention of best sequence
             visualize_att(file, seq, alphas, rev_word_map, path, args.smooth)
     else:
-        with torch.no_grad():
+        start = time.time()
+        with torch.inference_mode():
             seq, alphas = caption_image_beam_search(args, encoder, decoder, args.img, word_map)
             alphas = torch.FloatTensor(alphas)
 
-        if not (os.path.exists(args.save_img_dir) and os.path.isdir(args.save_img_dir)):
-            os.makedirs(args.save_img_dir)
-        timestamp = str(int(time.time()))
-        path = args.save_img_dir + "/" + timestamp + ".png"
-        # # Visualize caption and attention of best sequence
-        # visualize_att(args.img, seq, alphas, rev_word_map, path, args.smooth)
+        caption = ''
+        for s in seq[1:-1]:
+            caption += rev_word_map[s] + ' '
+        print(caption)
+        
+        stop = time.time()
+        print('inference time:', stop-start)
+
+        visualize_att(args.img, seq, alphas, rev_word_map, args.smooth)
