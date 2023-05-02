@@ -33,7 +33,7 @@ MSCOCO
 | BLEU-4          | 0.3519 | 0.3464      |
 
 
-## Acknolegment
+## Acknolegments
 The Baseline of the code is taken from https://github.com/sgrvinod/a-PyTorch-Tutorial-to-Image-Captioning
 
 The Transformer-based model is adapted from https://github.com/RoyalSkye/Image-Caption
