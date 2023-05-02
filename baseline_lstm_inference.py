@@ -162,7 +162,7 @@ def visualize_att(image_path, seq, alphas, rev_word_map, smooth=True):
     :param smooth: smooth weights?
     """
     image = Image.open(image_path)
-    image = image.resize([14 * 24, 14 * 24], Image.LANCZOS)
+    image = image.resize([14 * 24, 14 * 24], Image.Resampling.LANCZOS)
 
     words = [rev_word_map[ind] for ind in seq]
 
@@ -190,9 +190,9 @@ def visualize_att(image_path, seq, alphas, rev_word_map, smooth=True):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Show, Attend, and Tell - Tutorial - Generate Caption')
 
-    parser.add_argument('--img', '-i', help='path to image')
-    parser.add_argument('--model', '-m', help='path to model')
-    parser.add_argument('--word_map', '-wm', help='path to word map JSON')
+    parser.add_argument('--img', '-i', default='example_images/flower.jpg', help='path to image')
+    parser.add_argument('--model', '-m', default='checkpoints/lstm_model_checkpoints/BEST_checkpoint_coco_5_cap_per_img_5_min_word_freq.pth.tar', help='path to model')
+    parser.add_argument('--word_map', '-wm', default='checkpoints/WORDMAP_coco_5_cap_per_img_5_min_word_freq.json', help='path to word map JSON')
     parser.add_argument('--beam_size', '-b', default=5, type=int, help='beam size for beam search')
     parser.add_argument('--dont_smooth', dest='smooth', action='store_false', help='do not smooth alpha overlay')
 
@@ -215,6 +215,12 @@ if __name__ == '__main__':
     # Encode, decode with attention and beam search
     seq, alphas = caption_image_beam_search(encoder, decoder, args.img, word_map, args.beam_size)
     alphas = torch.FloatTensor(alphas)
+
+    # converting into a normal sentence
+    caption = ''
+    for s in seq[1:-1]:
+        caption += rev_word_map[s] + ' '
+    print(caption)
 
     # Visualize caption and attention of best sequence
     visualize_att(args.img, seq, alphas, rev_word_map, args.smooth)

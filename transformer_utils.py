@@ -10,13 +10,6 @@ from random import seed, choice, sample
 import imageio
 from PIL import Image
 
-# from eval_func.bleu.bleu import Bleu
-# from eval_func.rouge.rouge import Rouge
-# from eval_func.cider.cider import Cider
-# from eval_func.meteor.meteor import Meteor
-# from eval_func.spice.spice import Spice
-
-
 def create_input_files(dataset, karpathy_json_path, image_folder, captions_per_image, min_word_freq, output_folder,
                        max_len=100):
     """

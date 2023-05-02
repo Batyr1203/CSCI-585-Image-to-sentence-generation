@@ -5,7 +5,7 @@ import torch.utils.data
 import torchvision.transforms as transforms
 from torch import nn
 from torch.nn.utils.rnn import pack_padded_sequence
-from transformer_models import *
+from models import *
 from transformer import *
 from datasets import *
 from transformer_utils import *
@@ -292,7 +292,7 @@ if __name__ == '__main__':
 
     # Initialize / load checkpoint
     if args.checkpoint is None:
-        encoder = CNN_Encoder(attention_method=args.attention_method)
+        encoder = Encoder(attention_method=args.attention_method)
         encoder.fine_tune(args.fine_tune_encoder)
         encoder_optimizer = torch.optim.Adam(params=filter(lambda p: p.requires_grad, encoder.parameters()),
                                              lr=args.encoder_lr) if args.fine_tune_encoder else None
