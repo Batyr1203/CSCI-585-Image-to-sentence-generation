@@ -1,12 +1,33 @@
 # CSCI-585-Image-to-sentence-generation
+
+![alt text](https://github.com/Batyr1203/CSCI-585-Image-to-sentence-generation/blob/main/images/demo.png?raw=true)
+
 Spring23, Computer Vision Course term project on Image Captioning
 
-This repository consists of models presented as a term project.
-
-Term project presents 2 models that are composed of a Convolutional Network at the encoding step, and different variants of language model: Recurrent Network one and Transformer based one. We utilized three common datasets for this task: MSCOCO, Flickr8K, FLickr30K, and evaluated the performance with BLEU metrics.
+Term project presents 2 models that are composed of a Convolutional Network at the encoding step, and 2 variants of a language model: Recurrent Network one and Transformer-based one. We utilized three common datasets for this task: MSCOCO, Flickr8K, FLickr30K, and evaluated the performance with BLEU metrics.
 
 ### Note
-The implementation is based on the new `Pytorch 2.0` release.
+The implementation is based on `Python3.10` the new `Pytorch 2.0` release.
+
+
+### Requirements
+```h5py==3.8.0
+imageio==2.28.1
+matplotlib==3.7.1
+nltk==3.8.1
+opencv-python==4.7.0.72
+scikit-image==0.20.0
+streamlit==1.22.0
+torch==2.0.0
+torchvision==0.15.1
+tqdm==4.65.0
+```
+
+### Inference
+Run demo app for the project: \
+`pip install -r requirements.txt` \
+`streamlit run demo_app.py`
+
 
 ### Performance of the Baseline (LSTM) and the Main model (Transformer)
 (Beam size = 5)
@@ -37,6 +58,6 @@ MSCOCO
 
 
 ## Acknolegments
-The Baseline of the code is taken from https://github.com/sgrvinod/a-PyTorch-Tutorial-to-Image-Captioning
+- The Baseline of the code is taken from https://github.com/sgrvinod/a-PyTorch-Tutorial-to-Image-Captioning
 
-The Transformer-based model is adapted from https://github.com/RoyalSkye/Image-Caption
+- The Transformer-based model is adapted from https://github.com/RoyalSkye/Image-Caption
