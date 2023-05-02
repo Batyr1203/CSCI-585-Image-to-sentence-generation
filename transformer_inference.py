@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import os, time
 import torch
 import torch.nn.functional as F
@@ -14,7 +12,7 @@ import imageio.v2 as imageio
 from PIL import Image
 
 
-def caption_image_beam_search(args, encoder, decoder, image_path, word_map):
+def caption_image_beam_search(args, encoder, decoder, image_path, word_map, device):
     """
     Reads an image and captions it with beam search.
 
@@ -61,6 +59,7 @@ def caption_image_beam_search(args, encoder, decoder, image_path, word_map):
         k_prev_words = torch.LongTensor([[word_map['<start>']]] * k).to(device)  # (k, 1)
     elif args.decoder_mode == "transformer":
         k_prev_words = torch.LongTensor([[word_map['<start>']] * 52] * k).to(device)  # (k, 52)
+
 
     # Tensor to store top k sequences; now they're just <start>
     seqs = torch.LongTensor([[word_map['<start>']]] * k).to(device)  # (k, 1)
@@ -169,8 +168,9 @@ def visualize_att(image_path, seq, alphas, rev_word_map, smooth=True):
     image = image.resize([14 * 24, 14 * 24], Image.Resampling.LANCZOS)
 
     words = [rev_word_map[ind] for ind in seq]
-    #print(words)
 
+    plt.figure(figsize=(12, 10))
+    
     for t in range(len(words)):
         if t > 50:
             break
@@ -198,13 +198,17 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Image_Captioning')
     parser.add_argument('--img', '-i', default="example_images/cat.png", help='path to image, file or folder')
     parser.add_argument('--checkpoint', '-m', default="checkpoints/transformer_model_checkpoints/BEST_checkpoint_coco_5_cap_per_img_5_min_word_freq.pth.tar", help='path to model')
-    parser.add_argument('--word_map', '-wm', default="./checkpoints/WORDMAP_coco_5_cap_per_img_5_min_word_freq.json",
+    parser.add_argument('--word_map', '-wm', default="checkpoints/WORDMAP_coco_5_cap_per_img_5_min_word_freq.json",
                         help='path to word map JSON')
     parser.add_argument('--decoder_mode', default="transformer", help='which model does decoder use?')
     parser.add_argument('--save_img_dir', '-p', default="./caption", help='path to save annotated img.')
     parser.add_argument('--beam_size', '-b', type=int, default=5, help='beam size for beam search')
     parser.add_argument('--dont_smooth', dest='smooth', action='store_false', help='do not smooth alpha overlay')
     args = parser.parse_args()
+
+    print(args)
+    print(type(args))
+
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(device)
@@ -235,7 +239,7 @@ if __name__ == '__main__':
         for file in os.listdir(args.img):
             file = os.path.join(args.img, file)
             with torch.inference_mode():
-                seq, alphas = caption_image_beam_search(args, encoder, decoder, file, word_map)
+                seq, alphas = caption_image_beam_search(args, encoder, decoder, file, word_map, device)
                 alphas = torch.FloatTensor(alphas)
 
             if not (os.path.exists(args.save_img_dir) and os.path.isdir(args.save_img_dir)):
@@ -247,7 +251,7 @@ if __name__ == '__main__':
     else:
         start = time.time()
         with torch.inference_mode():
-            seq, alphas = caption_image_beam_search(args, encoder, decoder, args.img, word_map)
+            seq, alphas = caption_image_beam_search(args, encoder, decoder, args.img, word_map, device)
             alphas = torch.FloatTensor(alphas)
 
         caption = ''
